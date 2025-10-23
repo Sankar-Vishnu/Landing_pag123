@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vishnu - Full Stack Developer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        
+        body {
+            background: #f4f6f8;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        header {
+            background: #1e293b;
+            color: #fff;
+            padding: 40px 0;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 5px;
+        }
+        
+        header p {
+            font-size: 1.2rem;
+            color: #cbd5e1;
+        }
+        
+        section {
+            padding: 50px 15%;
+        }
+        
+        .about {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .about img {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #1e293b;
+        }
+        
+        .about-text h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #1e293b;
+        }
+        
+        .about-text p {
+            font-size: 1.1rem;
+        }
+        
+        .skills h2,
+        .projects h2,
+        .resume h2,
+        .contact h2 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            color: #1e293b;
+            text-align: center;
+        }
+        
+        .skills-list {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .skills-list span {
+            background: #1e293b;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        
+        .projects-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .project-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .project-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .project-card img {
+            width: 100%;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .project-card h3 {
+            margin-bottom: 8px;
+            color: #1e293b;
+        }
+        
+        .resume {
+            text-align: center;
+        }
+        
+        .resume a {
+            background: #1e293b;
+            color: #fff;
+            padding: 12px 25px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-size: 1.1rem;
+            transition: background 0.3s ease;
+        }
+        
+        .resume a:hover {
+            background: #334155;
+        }
+        
+        .contact {
+            text-align: center;
+        }
+        
+        .contact p {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+        
+        footer {
+            background: #1e293b;
+            color: #cbd5e1;
+            text-align: center;
+            padding: 15px 0;
+            font-size: 0.9rem;
+            margin-top: 40px;
+        }
+        
+        @media(max-width: 768px) {
+            .about {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header>
+        <h1>Vishnu
+            <h1>
+                <p>Full Stack Developer | Web Application Creator</p>
+    </header>
+
+    <!-- About -->
+    <section class="about" id="about">
+        <img src="photo.jpeg" alt="Your Photo">
+        <div class="about-text">
+            <h2>About Me</h2>
+            <p>Hello I’m Vishnu, a passionate Computer Science Engineering student currently in my 3rd year. I’m exploring web technologies as a Full Stack Developer, focusing on building responsive, scalable, and user-friendly web applications. I love turning
+                ideas into reality using both frontend and backend technologies.</p>
+        </div>
+    </section>
+
+    <!-- Skills -->
+    <section class="skills" id="skills">
+        <h2>Skills</h2>
+        <div class="skills-list">
+            <span>HTML</span><br> <span>CSS</span>
+            <span>JavaScript</span>
+            <span>React.js</span>
+            <span>Node.js</span>
+
+        </div>
+    </section>
+
+    <!-- Projects -->
+    <section class="projects" id="projects">
+        <h2>Projects</h2>
+        <div class="projects-container">
+            <div class="project-card">
+                <img src="ShopEase UI.jpg" alt="Project 1">
+                <h4>ShopEase UI – E-commerce Product Page Design</h4>
+                <h4>Description:</h4>
+                <p>ShopEase UI is a modern and responsive e-commerce product page developed using HTML, CSS, and JavaScript. It is designed to offer users a seamless online shopping experience with a clean layout, attractive product presentation, and interactive
+                    features. The project demonstrates strong frontend design skills and focuses on usability, accessibility, and responsive design principles.</p>
+            </div>
+            <div class="project-card">
+                <img src="portfolio1.png" alt="Project 2">
+
+                <h4>Dynamic Portfolio Builder – Interactive Web Template Creator</h4>
+                <h4>Description:</h4>
+                <p>This project is a responsive web application that allows users to create personalized portfolio websites dynamically. Users can customize sections like About, Skills, Projects, and Contact, with real-time previews and drag-and-drop features.
+                    The tool is designed to help aspiring professionals quickly generate a modern, visually appealing online presence without coding knowledge, demonstrating both frontend design and interactive UI development skills.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Resume -->
+    <section class="resume" id="resume">
+        <h2>Resume</h2>
+        <a href="resume.jpg" download>Download My Resume (PDF)</a>
+    </section>
+
+    <!-- Contact -->
+    <section class="contact" id="contact">
+        <h2>Contact Me</h2>
+        <p>Email: sankarvishnu2005@gmail.com</p>
+        <p>Phone: +91 9442416055</p>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        &copy; 2025 Vishnu | All Rights Reserved.
+    </footer>
+
+</body>
+
+</html>
