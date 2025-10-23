@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Online Quiz Maker - Vanilla</title>
+    <style>
+         :root {
+            --bg: #f7fafc;
+            --card: #ffffff;
+            --accent: #2563eb;
+            --muted: #6b7280;
+        }
+        
+        * {
+            box-sizing: border-box
+        }
+        
+        body {
+            margin: 0;
+            font-family: Inter, system-ui, Segoe UI, Roboto, "Helvetica Neue", Arial;
+            background: var(--bg);
+            color: #111
+        }
+        
+        .container {
+            max-width: 980px;
+            margin: 24px auto;
+            padding: 16px
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 1.25rem
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            background: transparent;
+            cursor: pointer
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+            border: none
+        }
+        
+        .card {
+            background: var(--card);
+            padding: 16px;
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+            margin-top: 12px
+        }
+        
+        .row {
+            display: flex;
+            gap: 12px
+        }
+        
+        .col {
+            flex: 1
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+            color: var(--muted)
+        }
+        
+        input[type="text"],
+        input[type="password"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #fff
+        }
+        
+        .muted {
+            color: var(--muted);
+            font-size: 0.9rem
+        }
+        
+        .quiz-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border: 1px dashed #e6edf7;
+            border-radius: 8px;
+            margin-bottom: 8px
+        }
+        
+        .question-card {
+            border: 1px solid #eef2ff;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px
+        }
+        
+        .option {
+            display: flex;
+            gap: 8px;
+            align-items: center
+        }
+        
+        .small {
+            font-size: 0.85rem
+        }
+        
+        nav .btn {
+            margin-left: 8px
+        }
+        
+        footer {
+            margin-top: 20px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.85rem
+        }
+        /* responsive */
+        
+        @media (max-width:700px) {
+            .row {
+                flex-direction: column
+            }
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px
+            }
+        }
+        /* tiny helpers */
+        
+        .gap-8 {
+            gap: 8px
+        }
+        
+        .mb-8 {
+            margin-bottom: 8px
+        }
+        
+        .mt-8 {
+            margin-top: 8px
+        }
+        
+        .text-green {
+            color: #16a34a
+        }
+        
+        .text-red {
+            color: #ef4444
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div>
+                <h1>Online Quiz Maker</h1>
+                <div class="muted small">Create quizzes, take quizzes, get instant feedback</div>
+            </div>
+            <nav>
+                <button class="btn" id="nav-home">Home</button>
+                <button class="btn" id="nav-create">Create Quiz</button>
+                <button class="btn" id="nav-list">Browse</button>
+                <span id="auth-area"></span>
+            </nav>
+        </header>
+
+        <main id="main"></main>
+
+        <footer>Demo only — data is stored in your browser's localStorage. For a production app, build a backend and secure auth.</footer>
+    </div>
+
+    <script>
+        /*
+                                Vanilla Online Quiz Maker
+                                - Keep data in localStorage keys: oqm_users, oqm_quizzes, oqm_session
+                                - Each user: { id, username, password }
+                                - Each quiz: { id, title, ownerId, questions:[{id,text,options:[],correctIndex}], createdAt }
+                                */
+
+        const $ = sel => document.querySelector(sel);
+        const uid = () => Math.random().toString(36).slice(2, 9);
+
+        function load(key, fallback) {
+            try {
+                return JSON.parse(localStorage.getItem(key)) || fallback;
+            } catch (e) {
+                return fallback;
+            }
+        }
+
+        function save(key, val) {
+            localStorage.setItem(key, JSON.stringify(val));
+        }
+
+        let users = load('oqm_users', []);
+        let quizzes = load('oqm_quizzes', []);
+        let session = load('oqm_session', null); // { userId }
+        renderAuthArea();
+        routeTo('home');
+
+        /* Navigation handlers */
+        $('#nav-home').addEventListener('click', () => routeTo('home'));
+        $('#nav-create').addEventListener('click', () => routeTo('create'));
+        $('#nav-list').addEventListener('click', () => routeTo('list'));
+
+        function renderAuthArea() {
+            const authArea = $('#auth-area');
+            if (session && session.userId) {
+                const user = users.find(u => u.id === session.userId);
+                authArea.innerHTML = `
+      <span class="muted small">Hi, ${user.username}</span>
+      <button class="btn btn-primary" id="btn-logout">Logout</button>
+    `;
+                $('#btn-logout').addEventListener('click', () => {
+                    session = null;
+                    save('oqm_session', null);
+                    renderAuthArea();
+                    routeTo('home');
+                });
+            } else {
+                authArea.innerHTML = `
+      <button class="btn" id="btn-auth">Login / Register</button>
+    `;
+                $('#btn-auth').addEventListener('click', () => routeTo('auth'));
+            }
+        }
+
+        /* ROUTER */
+        function routeTo(route, payload) {
+            if (route === 'home') return renderHome();
+            if (route === 'auth') return renderAuth();
+            if (route === 'create') return renderCreate();
+            if (route === 'list') return renderList();
+            if (route === 'take') return renderTake(payload); // payload = { quizId }
+            if (route === 'preview') return renderPreview(payload); // payload = quizId
+            if (route === 'results') return renderResults(payload); // payload = { quizId, answers }
+        }
+
+        /* Home */
+        function renderHome() {
+            const main = $('#main');
+            main.innerHTML = `
+    <div class="card">
+      <h2>Welcome ${session && session.userId ? (' ' + users.find(u=>u.id===session.userId).username) : ''}!</h2>
+      <p class="muted">Create your own quizzes or take quizzes shared by others.</p>
+      <div class="row mt-8">
+        <div class="col">
+          <button class="btn btn-primary" id="home-create">Create Quiz</button>
+        </div>
+        <div class="col">
+          <button class="btn" id="home-browse">Browse Quizzes</button>
+        </div>
+        <div class="col">
+          <button class="btn" id="home-sample">Take Sample</button>
+        </div>
+      </div>
+    </div>
+  `;
+            $('#home-create').addEventListener('click', () => routeTo('create'));
+            $('#home-browse').addEventListener('click', () => routeTo('list'));
+            $('#home-sample').addEventListener('click', () => {
+                if (quizzes.length) routeTo('take', {
+                    quizId: quizzes[0].id
+                });
+                else alert('No quizzes yet — create one!');
+            });
+        }
+
+        /* Auth */
+        function renderAuth() {
+            const main = $('#main');
+            main.innerHTML = `
+    <div class="card" style="max-width:480px">
+      <h3>Login / Register</h3>
+      <div id="auth-msg" class="muted mb-8"></div>
+      <label>Username<input id="auth-username" type="text"></label>
+      <label>Password<input id="auth-password" type="password"></label>
+      <div class="row mt-8">
+        <button class="btn btn-primary" id="btn-login">Login</button>
+        <button class="btn" id="btn-register">Register</button>
+      </div>
+    </div>
+  `;
+            $('#btn-login').addEventListener('click', () => {
+                const u = $('#auth-username').value.trim();
+                const p = $('#auth-password').value;
+                if (!u || !p) {
+                    $('#auth-msg').textContent = 'Enter username & password';
+                    return;
+                }
+                const user = users.find(x => x.username === u && x.password === p);
+                if (!user) {
+                    $('#auth-msg').textContent = 'Invalid credentials';
+                    return;
+                }
+                session = {
+                    userId: user.id
+                };
+                save('oqm_session', session);
+                renderAuthArea();
+                routeTo('home');
+            });
+            $('#btn-register').addEventListener('click', () => {
+                const u = $('#auth-username').value.trim();
+                const p = $('#auth-password').value;
+                if (!u || !p) {
+                    $('#auth-msg').textContent = 'Enter username & password';
+                    return;
+                }
+                if (users.find(x => x.username === u)) {
+                    $('#auth-msg').textContent = 'Username taken';
+                    return;
+                }
+                const newUser = {
+                    id: uid(),
+                    username: u,
+                    password: p
+                };
+                users.push(newUser);
+                save('oqm_users', users);
+                session = {
+                    userId: newUser.id
+                };
+                save('oqm_session', session);
+                renderAuthArea();
+                routeTo('home');
+            });
+        }
+
+        /* Create Quiz UI */
+        function renderCreate() {
+            const main = $('#main');
+            if (!session || !session.userId) {
+                main.innerHTML = `<div class="card"><p class="muted">Please login to create quizzes.</p><button class="btn" id="to-auth">Login</button></div>`;
+                $('#to-auth').addEventListener('click', () => routeTo('auth'));
+                return;
+            }
+            // Start with one question and two options
+            let draft = {
+                title: '',
+                questions: [{
+                    id: uid(),
+                    text: '',
+                    options: ['', ''],
+                    correctIndex: 0
+                }]
+            };
+
+            function renderForm() {
+                main.innerHTML = `<div class="card">
+      <h3>Create Quiz</h3>
+      <label>Quiz Title<input id="q-title" type="text" value="${escapeHtml(draft.title)}"></label>
+      <div id="questions-area" class="mt-8"></div>
+      <div class="row mt-8">
+        <button class="btn btn-primary" id="add-question">Add Question</button>
+        <button class="btn" id="save-quiz">Save Quiz</button>
+        <button class="btn" id="cancel-create">Cancel</button>
+      </div>
+    </div>`;
+                $('#q-title').addEventListener('input', e => draft.title = e.target.value);
+
+                const qArea = $('#questions-area');
+                draft.questions.forEach((q, qi) => {
+                    const qDiv = document.createElement('div');
+                    qDiv.className = 'question-card';
+                    qDiv.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>Question ${qi+1}</strong>
+          <div>
+            <button class="btn" data-action="remove" data-qid="${q.id}">Remove</button>
+          </div>
+        </div>
+        <label class="mt-8">Question Text<textarea data-qid="${q.id}" class="q-text" rows="2">${escapeHtml(q.text)}</textarea></label>
+        <div class="mt-8 options" data-qid="${q.id}">
+          <label class="muted small">Options (select correct)</label>
+        </div>
+        <div class="row mt-8">
+          <button class="btn" data-action="add-option" data-qid="${q.id}">Add Option</button>
+        </div>
+      `;
+                    qArea.appendChild(qDiv);
+
+                    const optsDiv = qDiv.querySelector('.options');
+                    q.options.forEach((opt, idx) => {
+                        const optEl = document.createElement('div');
+                        optEl.className = 'option';
+                        optEl.innerHTML = `
+          <input type="radio" name="correct-${q.id}" ${q.correctIndex===idx ? 'checked' : ''} data-qid="${q.id}" data-idx="${idx}">
+          <input type="text" value="${escapeHtml(opt)}" data-qid="${q.id}" data-idx="${idx}" class="opt-text" placeholder="Option ${idx+1}">
+          <button class="btn" data-action="remove-opt" data-qid="${q.id}" data-idx="${idx}">x</button>
+        `;
+                        optsDiv.appendChild(optEl);
+                    });
+                });
+
+                // Attach event listeners inside form
+                qArea.addEventListener('click', (ev) => {
+                    const btn = ev.target.closest('button');
+                    if (!btn) return;
+                    const action = btn.dataset.action;
+                    const qid = btn.dataset.qid;
+                    if (action === 'remove') {
+                        draft.questions = draft.questions.filter(x => x.id !== qid);
+                        renderForm();
+                    }
+                    if (action === 'add-option') {
+                        const q = draft.questions.find(x => x.id === qid);
+                        if (q) {
+                            q.options.push('');
+                            renderForm();
+                        }
+                    }
+                    if (action === 'remove-opt') {
+                        const idx = Number(btn.dataset.idx);
+                        const q = draft.questions.find(x => x.id === qid);
+                        if (q) {
+                            q.options.splice(idx, 1);
+                            if (q.correctIndex >= q.options.length) q.correctIndex = 0;
+                            renderForm();
+                        }
+                    }
+                });
+
+                qArea.addEventListener('input', (ev) => {
+                    const ta = ev.target;
+                    if (ta.classList.contains('q-text')) {
+                        const qid = ta.dataset.qid;
+                        const q = draft.questions.find(x => x.id === qid);
+                        if (q) q.text = ta.value;
+                    }
+                    if (ta.classList.contains('opt-text')) {
+                        const qid = ta.dataset.qid;
+                        const idx = Number(ta.dataset.idx);
+                        const q = draft.questions.find(x => x.id === qid);
+                        if (q) q.options[idx] = ta.value;
+                    }
+                });
+
+                qArea.addEventListener('change', (ev) => {
+                    const r = ev.target;
+                    if (r.type === 'radio' && r.dataset.qid) {
+                        const qid = r.dataset.qid;
+                        const idx = Number(r.dataset.idx);
+                        const q = draft.questions.find(x => x.id === qid);
+                        if (q) q.correctIndex = idx;
+                    }
+                });
+
+                $('#add-question').addEventListener('click', () => {
+                    draft.questions.push({
+                        id: uid(),
+                        text: '',
+                        options: ['', ''],
+                        correctIndex: 0
+                    });
+                    renderForm();
+                });
+                $('#save-quiz').addEventListener('click', () => {
+                    // validation
+                    if (!draft.title.trim()) {
+                        alert('Quiz title is required');
+                        return;
+                    }
+                    for (const q of draft.questions) {
+                        if (!q.text.trim()) {
+                            alert('All questions must have text');
+                            return;
+                        }
+                        if (q.options.some(o => !o.trim())) {
+                            alert('All options must be filled');
+                            return;
+                        }
+                        if (typeof q.correctIndex !== 'number') {
+                            alert('Select correct options');
+                            return;
+                        }
+                    }
+                    const ownerId = session.userId;
+                    const newQuiz = {
+                        id: uid(),
+                        title: draft.title.trim(),
+                        ownerId,
+                        questions: draft.questions.map(q => ({
+                            id: q.id,
+                            text: q.text.trim(),
+                            options: q.options.map(o => o.trim()),
+                            correctIndex: q.correctIndex
+                        })),
+                        createdAt: Date.now()
+                    };
+                    quizzes.unshift(newQuiz);
+                    save('oqm_quizzes', quizzes);
+                    alert('Quiz saved');
+                    routeTo('list');
+                });
+                $('#cancel-create').addEventListener('click', () => routeTo('home'));
+            }
+
+            renderForm();
+        }
+
+        /* List / Browse */
+        function renderList() {
+            const main = $('#main');
+            main.innerHTML = `<div class="card"><h3>Available Quizzes</h3><div id="list-area" class="mt-8"></div></div>`;
+            const listArea = $('#list-area');
+            if (quizzes.length === 0) {
+                listArea.innerHTML = `<div class="muted">No quizzes yet. Create one!</div>`;
+                return;
+            }
+            quizzes.forEach(q => {
+                        const owner = users.find(u => u.id === q.ownerId);
+                        const div = document.createElement('div');
+                        div.className = 'quiz-list-item';
+                        div.innerHTML = `
+      <div>
+        <div style="font-weight:600">${escapeHtml(q.title)}</div>
+        <div class="muted small">${q.questions.length} questions • by ${owner ? escapeHtml(owner.username) : 'Unknown'}</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn" data-action="preview" data-id="${q.id}">Preview</button>
+        <button class="btn btn-primary" data-action="take" data-id="${q.id}">Take</button>
+        ${session && session.userId === q.ownerId ? `<button class="btn text-red" data-action="delete" data-id="${q.id}">Delete</button>` : ''}
+      </div>
+    `;
+    listArea.appendChild(div);
+  });
+  listArea.addEventListener('click', (ev)=>{
+    const btn = ev.target.closest('button');
+    if(!btn) return;
+    const act = btn.dataset.action;
+    const id = btn.dataset.id;
+    if(act === 'take') routeTo('take', { quizId: id });
+    if(act === 'preview') routeTo('preview', id);
+    if(act === 'delete'){
+      if(confirm('Delete this quiz?')){ quizzes = quizzes.filter(x=>x.id!==id); save('oqm_quizzes', quizzes); routeTo('list'); }
+    }
+  });
+}
+
+/* Preview */
+function renderPreview(quizId){
+  const q = quizzes.find(x=>x.id===quizId);
+  if(!q){ alert('Quiz not found'); routeTo('list'); return; }
+  const main = $('#main');
+  main.innerHTML = `<div class="card"><h3>Preview: ${escapeHtml(q.title)}</h3>
+    <div id="preview-questions" class="mt-6"></div>
+    <div class="row mt-8">
+      <button class="btn btn-primary" id="start-quiz">Start Quiz</button>
+      <button class="btn" id="back-list">Back</button>
+    </div>
+  </div>`;
+  const pQ = $('#preview-questions');
+  q.questions.forEach((ques, i)=>{
+    const el = document.createElement('div');
+    el.className = 'question-card';
+    el.innerHTML = `<div style="font-weight:600">Q${i+1}: ${escapeHtml(ques.text)}</div>
+      <ol style="margin-top:8px;padding-left:18px">${ques.options.map(o=>`<li>${escapeHtml(o)}</li>`).join('')}</ol>`;
+    pQ.appendChild(el);
+  });
+  $('#start-quiz').addEventListener('click', ()=>routeTo('take', { quizId }));
+  $('#back-list').addEventListener('click', ()=>routeTo('list'));
+}
+
+/* Take Quiz */
+function renderTake({ quizId }){
+  const quiz = quizzes.find(x=>x.id===quizId);
+  if(!quiz){ alert('Quiz not found'); routeTo('list'); return; }
+  // answers as indexes or null
+  let state = { idx: 0, answers: Array(quiz.questions.length).fill(null) };
+  const main = $('#main');
+
+  function renderQ(){
+    const q = quiz.questions[state.idx];
+    main.innerHTML = `<div class="card">
+      <h3>${escapeHtml(quiz.title)}</h3>
+      <div class="muted small">Question ${state.idx + 1} of ${quiz.questions.length}</div>
+      <div class="mt-8 question-card">
+        <div style="font-weight:600">${escapeHtml(q.text)}</div>
+        <div class="mt-6" id="opts"></div>
+      </div>
+      <div class="row mt-8">
+        <button class="btn" id="prev-btn" ${state.idx===0 ? 'disabled' : ''}>Previous</button>
+        ${state.idx < quiz.questions.length -1 ? `<button class="btn btn-primary" id="next-btn">Next</button>` : `<button class="btn btn-primary" id="finish-btn">Finish</button>`}
+        <button class="btn" id="quit-btn">Quit</button>
+      </div>
+    </div>`;
+    const opts = $('#opts');
+    q.options.forEach((opt, oi)=>{
+      const sel = state.answers[state.idx] === oi ? 'background:#eef2ff' : '';
+      const div = document.createElement('div');
+      div.className = 'option';
+      div.style.padding='8px;margin-bottom:6px;border-radius:8px';
+      div.style.border='1px solid #eef2ff';
+      div.style.cursor='pointer';
+      div.innerHTML = `<input type="radio" name="opt" ${state.answers[state.idx]===oi? 'checked':''} data-oi="${oi}"> <span>${escapeHtml(opt)}</span>`;
+      if(state.answers[state.idx]===oi) div.style.background='#eef2ff';
+      opts.appendChild(div);
+      div.addEventListener('click', ()=>{
+        state.answers[state.idx] = oi; renderQ();
+      });
+    });
+
+    $('#prev-btn').addEventListener('click', ()=>{ if(state.idx>0){ state.idx--; renderQ(); }});
+    if($('#next-btn')) $('#next-btn').addEventListener('click', ()=>{ state.idx++; renderQ(); });
+    if($('#finish-btn')) $('#finish-btn').addEventListener('click', ()=>{ routeTo('results', { quizId, answers: state.answers }); });
+    $('#quit-btn').addEventListener('click', ()=>{ if(confirm('Quit quiz? Progress lost.')) routeTo('list'); });
+  }
+
+  renderQ();
+}
+
+/* Results */
+function renderResults({ quizId, answers }){
+  const quiz = quizzes.find(x=>x.id===quizId);
+  if(!quiz){ alert('Quiz missing'); routeTo('list'); return; }
+  const details = quiz.questions.map((q,i)=>{
+    const chosen = answers[i];
+    const correct = q.correctIndex;
+    const ok = chosen === correct;
+    return { question:q.text, options:q.options, chosen, correct, ok };
+  });
+  const score = details.filter(d=>d.ok).length;
+  const main = $('#main');
+  main.innerHTML = `<div class="card">
+    <h3>Results for: ${escapeHtml(quiz.title)}</h3>
+    <div class="mt-4"><strong>Score: ${score} / ${quiz.questions.length}</strong></div>
+    <div id="res-list" class="mt-8"></div>
+    <div class="row mt-8">
+      <button class="btn btn-primary" id="retake">Retake</button>
+      <button class="btn" id="back-list">Back to List</button>
+    </div>
+  </div>`;
+  const rl = $('#res-list');
+  details.forEach((d,i)=>{
+    const el = document.createElement('div');
+    el.className = 'question-card';
+    el.innerHTML = `<div style="font-weight:600">Q${i+1}: ${escapeHtml(d.question)}</div>
+      <div class="mt-4">Your answer: <strong>${d.chosen===null ? 'No answer' : escapeHtml(d.options[d.chosen])}</strong></div>
+      <div>Correct answer: <strong>${escapeHtml(d.options[d.correct])}</strong></div>
+      <div class="${d.ok ? 'text-green' : 'text-red'} small" style="margin-top:6px">${d.ok ? 'Correct' : 'Wrong'}</div>
+    `;
+    rl.appendChild(el);
+  });
+  $('#retake').addEventListener('click', ()=> routeTo('take', { quizId }));
+  $('#back-list').addEventListener('click', ()=> routeTo('list'));
+}
+
+/* Utilities */
+function escapeHtml(s){
+  if(!s) return '';
+  return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+}
+
+/* For development: Add a sample quiz if none exists */
+if(quizzes.length===0){
+  quizzes.push({
+    id: uid(),
+    title: 'Sample - Capitals',
+    ownerId: (users[0] && users[0].id) || 'system',
+    questions: [
+      { id: uid(), text: 'What is the capital of France?', options: ['London','Berlin','Paris','Rome'], correctIndex:2 },
+      { id: uid(), text: 'Which planet is known as the Red Planet?', options: ['Earth','Mars','Jupiter','Venus'], correctIndex:1 }
+    ],
+    createdAt: Date.now()
+  });
+  save('oqm_quizzes', quizzes);
+}
+
+/* end */
+    </script>
+</body>
+
+</html>
